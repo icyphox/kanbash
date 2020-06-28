@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+
+CONFIG=~/.config/kanbash/config
+
+# Load config. Expects 'nc', 'ip', 'dn' and 'board'.
+load_config() {
+    if [[ -f "$CONFIG" ]]; then
+        source "$CONFIG"
+    else
+        printf '%s\n' "error: no config file found"
+        usage
+        exit
+    fi
+}
+
+usage() {
+    help_str="
+kanbash - a kanban board in bash
+
+"$0" [options]
+
+usage:
+    add  COL STR         adds string to column
+    list COL             lists enumerated tasks
+    move COL NUM COL     moves from column to column, by number
+    cols                 lists columns and paths
+
+configuration:
+    kanbash expects a config file at $HOME/.config/kanbash/config
+    example config:
+        
+        # not completed
+        nc="nc"
+        
+        # in progress
+        ip="ip"
+        
+        # done
+        dn="done"
+
+        board=/home/icy/code/kanbash/test
+    "
+    printf '%s\n' "$help_str"
+}
+
+# init() {
+#     [[ -z "$1" ]] && {
+#         usage
+#         exit
+#     }
+#     load_config
+#     board="$1"
+#     [[ -d "$board" ]] && {
+#         printf '%s\n' "error: $board already exists"
+#         exit
+#     }
+#     mkdir -p "$board"
+#     touch "$board"/{$nc,$ip,$dn}
+# 
+#     printf '%s\n' "kanbash: initialized at $board"
+#     printf '%s\n' "board="$(readlink -f "$board")"" >> "$CONFIG"
+# }
+
+check_col() {
+    col="$1"
+    [[ ! -f "$board/$col" ]] && {
+        printf '%s\n' "error: no such column $col"
+        exit
+    }
+}
+
+add() {
+    col="$1"
+    check_col "$col"
+    shift
+    task="$@"
+    printf '%s\n' "$task" >> "$board/$col"
+}
+
+list() {
+    col="$1"
+    check_col "$col"
+    mapfile -t f < "$board/$col"
+    count=0
+    for line in "${f[@]}"; do
+        printf '%s\n' "$(( count++ ))  $line"
+    done
+}
+
+move() {
+    [[ "$#" -ne 3 ]] && {
+        printf '%s\n' "error: invalid number of arguments"
+        usage
+        exit
+    }
+
+    fcol="$1"
+    n="$2"
+    tcol="$3"
+
+    check_col "$fcol"
+    check_col "$tcol"
+
+    mapfile -t f < "$board/$fcol"
+    chosen="${f["$n"]}"
+
+    printf '%s\n' "$chosen" >> "$board/$tcol"
+
+    unset -v f[$n]
+    # TODO: inelegant, but whatever.
+    rm "$board/$fcol"
+    for line in "${f[@]}"; do
+         printf '%s\n' "$line" >> "$board/$fcol"
+    done
+}
+
+main() {
+    load_config
+    [[ -z "$1" ]] && {
+        all
+    }
+    case "$1" in
+        a*)
+            shift
+            add "$@"
+            ;;
+        l*)
+            shift
+            list "$@"
+            ;;
+        m*)
+            shift
+            move "$@"
+            ;;
+        h|*)
+            usage
+            ;;
+    esac
+}
+
+main "$@"
