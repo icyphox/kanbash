@@ -17,13 +17,13 @@ usage() {
     help_str="
 kanbash - a kanban board in bash
 
-"$0" [options]
+$0 [options]
 
 usage:
     add  COL STR         adds string to column
     list COL             lists enumerated tasks
     move COL NUM COL     moves from column to column, by number
-    cols                 lists columns and paths
+    all                  list all columns; default output when run without args
 
 configuration:
     kanbash expects a config file at $HOME/.config/kanbash/config
@@ -39,6 +39,9 @@ configuration:
         dn="done"
 
         board=/home/icy/code/kanbash/test
+
+    board can also be specified by setting the KB_BOARD environment
+    variable; use absolute paths (/home/user/foo/bar).
     "
     printf '%s\n' "$help_str"
 }
@@ -63,10 +66,12 @@ list() {
     col="$1"
     check_col "$col"
     mapfile -t f < "$board/$col"
-    count=0
+    count=1
+    printf '%b\n' "\e[1m${col^^}\e[0m"
     for line in "${f[@]}"; do
-        printf '%s\n' "$(( count++ ))  $line"
+        printf '%b\n' "\e[36m$(( count++ ))\e[0m  $line"
     done
+    printf '\n'
 }
 
 move() {
@@ -88,20 +93,53 @@ move() {
 
     printf '%s\n' "$chosen" >> "$board/$tcol"
 
-    unset -v f[$n]
+    unset -v f["$n"]
     # TODO: inelegant, but whatever.
     rm "$board/$fcol"
+    [[ "${#f[@]}" -eq 0 ]] && touch "$board/$fcol"
     for line in "${f[@]}"; do
          printf '%s\n' "$line" >> "$board/$fcol"
     done
 }
 
+init() {
+
+    [[ -d "$board" ]] && {
+        printf '%s\n' "error: $board already exists"
+        exit
+    } 
+    
+    mkdir -p "$board"
+    touch "$board"/{"$nc","$ip","$dn"}
+    printf '%s\n' "kanbash: initialized at $board"
+}
+
+all() {
+    # The three columns.
+    for c in "$nc" "$ip" "$dn"; do
+        list "$c"
+    done
+}
+
 main() {
     load_config
+
+    # If $KB_BOARD is set
+    [[ -v "$KB_BOARD" ]] && {
+        board="$KB_BOARD"
+    }
+
     [[ -z "$1" ]] && {
         all
     }
+
     case "$1" in
+        i*)
+            init
+            ;;
+        al*)
+            all
+            ;;
         a*)
             shift
             add "$@"
@@ -114,7 +152,8 @@ main() {
             shift
             move "$@"
             ;;
-        h|*)
+
+        h)
             usage
             ;;
     esac
