@@ -66,7 +66,7 @@ list() {
     col="$1"
     check_col "$col"
     mapfile -t f < "$board/$col"
-    count=1
+    count=0
     printf '%b\n' "\e[1m${col^^}\e[0m"
     for line in "${f[@]}"; do
         printf '%b\n' "\e[36m$(( count++ ))\e[0m  $line"
