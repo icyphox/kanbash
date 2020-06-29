@@ -27,3 +27,7 @@ example config:
 
 board can also be specified by setting the KB_BOARD environment
 variable; use absolute paths (/home/user/foo/bar).
+
+WHY
+
+Trello sucks.
