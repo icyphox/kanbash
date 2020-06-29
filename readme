@@ -1,0 +1,29 @@
+KANBASH
+
+An opininated kanban board written in bash.
+
+USAGE
+
+kb add  COL STR         adds string to column
+kb list COL             lists enumerated tasks
+kb move COL NUM COL     moves from column to column, by number
+kb all                  list all columns; default output when run without args
+
+CONFIGURATION
+
+kanbash expects a config file at $HOME/.config/kanbash/config
+example config:
+    
+    # not completed
+    nc="nc"
+    
+    # in progress
+    ip="ip"
+    
+    # done
+    dn="done"
+
+    board=/home/icy/code/kanbash/test
+
+board can also be specified by setting the KB_BOARD environment
+variable; use absolute paths (/home/user/foo/bar).
